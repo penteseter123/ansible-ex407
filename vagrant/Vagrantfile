@@ -1,0 +1,23 @@
+servers=[
+      {
+        :hostname => "ansible-server",
+        :box => "centos/7"
+      },
+      {
+        :hostname => "node1",
+        :box => "centos/7"
+      },
+      {
+        :hostname => "node2",
+        :box => "centos/7"
+      }
+    ]
+
+Vagrant.configure("2") do |config|
+    servers.each do |machine|
+        config.vm.define machine[:hostname] do |node|
+            node.vm.box = machine[:box]
+            node.vm.hostname = machine[:hostname]
+        end
+    end
+end

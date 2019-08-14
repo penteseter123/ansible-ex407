@@ -1,0 +1,4 @@
+# Todo: 
+# install ansible on ansible server 
+# setup hosts files on ansible-server so ansible user can ssh into both nodes
+# setup keys for ssh so ansible runs properly.  
