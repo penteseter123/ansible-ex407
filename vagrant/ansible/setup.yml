@@ -4,6 +4,26 @@
   - name: setup ansible user
     user:
       name: ansible
+    when: ansible_hostname != "ansible-server"
+
+  - name: setup ansible user
+    user:
+      name: ansible
+      generate_ssh_key: yes
+    when: ansible_hostname == "ansible-server"
+
+  - name: install Ansible
+    yum:
+      name: ansible
+      state: latest
+    when: ansible_hostname == "ansible-server"
+
+  - name: disable host_key_checking
+    lineinfile:
+      path: /etc/ansible/ansible.cfg
+      regexp: host_key_checking
+      line: 'host_key_checking = False'
+    when: ansible_hostname == "ansible-server" 
 
   - name: download public key from ansible-server to host machine
     fetch:
@@ -16,20 +36,20 @@
       user: ansible
       state: present
       key: "{{ lookup('file', 'pub_key/ansible-server/home/ansible/.ssh/id_rsa.pub') }}"
-      #  key: ansible/pub_key/ansible-server/home/ansible/.ssh/id_rsa.pub
     when: ansible_hostname != "ansible-server"
 
-  - name: Add mappings to /etc/hosts
+  - name: add vms to /etc/hosts
     blockinfile:
       path: /etc/hosts
       block: |
-        ansible-server 172.28.128.10
-        node1 172.28.128.11
-        node2 172.28.128.12
+        172.28.128.10 ansible-server   
+        172.28.128.11 node1 
+        172.28.128.12 node2 
       marker: "# {mark} ANSIBLE MANAGED BLOCK"
 
-      #  - name: remove temporary pub key
-      # local_action: 
-      #module: file 
-      #path: pub_key 
-      #state: absent
+#  - name: remove temporary pub key (cleanup task, run last)
+#    become: false
+#    local_action: 
+#      module: file 
+#      path: pub_key 
+#      state: absent
