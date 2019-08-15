@@ -1,0 +1,35 @@
+- hosts: all 
+  become: true
+  tasks:
+  - name: setup ansible user
+    user:
+      name: ansible
+
+  - name: download public key from ansible-server to host machine
+    fetch:
+      src: /home/ansible/.ssh/id_rsa.pub
+      dest: pub_key
+    when: ansible_hostname == "ansible-server"
+
+  - name: copy authorized_key
+    authorized_key:
+      user: ansible
+      state: present
+      key: "{{ lookup('file', 'pub_key/ansible-server/home/ansible/.ssh/id_rsa.pub') }}"
+      #  key: ansible/pub_key/ansible-server/home/ansible/.ssh/id_rsa.pub
+    when: ansible_hostname != "ansible-server"
+
+  - name: Add mappings to /etc/hosts
+    blockinfile:
+      path: /etc/hosts
+      block: |
+        ansible-server 172.28.128.10
+        node1 172.28.128.11
+        node2 172.28.128.12
+      marker: "# {mark} ANSIBLE MANAGED BLOCK"
+
+      #  - name: remove temporary pub key
+      # local_action: 
+      #module: file 
+      #path: pub_key 
+      #state: absent

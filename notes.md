@@ -90,7 +90,6 @@ all:
         three.example.com:
 ```
 Variables can be stored in inventory files but it isn't recommended. Use host_vars and group_vars instead.  
-
 Variables example:
 Edit group_vars file to look like this:
 ```
@@ -107,3 +106,50 @@ This will will use the variable set in group_vars and tail the messages log for 
 ansible-inventory -i /home/ansible/inv --list
 ```
 ##  Create Ansible Plays and Playbooks
+### Example Playbook
+```
+---
+- hosts: webservers
+  remote_user: yourname
+  tasks:
+    - name: ensure httpd is installed
+      yum:
+        name: httpd
+        state: latest
+    - name: ensure httpd is started
+      service:
+        name: nginx
+        state: started
+```
+### Use Variables to Retrieve the Results of Running Commands
+```
+---
+- hosts: local
+  tasks:
+    - name: create file
+      file:
+        path: /tmp/newfile
+        state: touch
+      register: output
+    - debug: msg="output is: {{output}}"
+```
+### Use Conditionals to Control Play Execution
+Handlers are executed at the end of a play.
+```
+---
+- hosts: all
+  become: yes
+  handlers:
+    - name: restart httpd
+      service:
+        name: httpd
+        state: restarted
+        listen: "restart web"
+  tasks:
+    - name: update config
+      copy:
+        src: ../files/index.html
+        dest: /var/www/index.html
+      notify:
+        restart web
+```
