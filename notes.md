@@ -134,7 +134,8 @@ ansible-inventory -i /home/ansible/inv --list
     - debug: msg="output is: {{output}}"
 ```
 ### Use Conditionals to Control Play Execution
-Handlers are executed at the end of a play.
+#### Handlers
+Executed at the end of a play
 ```
 ---
 - hosts: all
@@ -152,4 +153,155 @@ Handlers are executed at the end of a play.
         dest: /var/www/index.html
       notify:
         restart web
+```
+#### when
+Conditional   
+```
+---
+- hosts: all
+  tasks:
+  - name: echo message
+    shell: echo "This is Red Hat"
+    when: ansible_facts['os_family'] == "RedHat"  
+```
+#### with_items
+Loop
+```
+---
+- hosts: all
+  tasks:
+  - name: add users
+    user:
+      name: {{item}}
+    with_items:
+      - andy
+      - barry
+      - dave
+```
+### Error Handling
+Ignore, define failure conditions, defining "changed", blocks
+#### Ignore
+```
+---
+- hosts: all
+  tasks:
+  - name: this will not be counted as a failure
+    command: /bin/false
+    ignore_errors: yes
+```
+#### Blocks
+Similar to try-catch
+```
+- hosts: all
+  tasks:
+  - name: Handle the error
+    block:
+      - debug:
+          msg: 'I execute normally'
+      - name: i force a failure
+        command: /bin/false
+      - debug:
+          msg: 'I never execute, due to the above task failing, :-('
+    rescue:
+      - debug:
+          msg: 'I caught an error, can do stuff here to fix it, :-)'
+```
+### Tags
+```
+- hosts: all
+  tasks:
+  - yum:
+      name: "{{ item }}"
+      state: present
+    loop:
+    - httpd
+    - memcached
+    tags:
+    - packages
+
+  - template:
+      src: templates/src.j2
+      dest: /etc/foo.conf
+    tags:
+    - configuration
+```
+Run playbook with: ```ansible-playbook example.yml --tags "packages"``` to only run the yum task. ```--skip-tags``` can be used to skip specified tags.
+
+## Create and Use Templates to Create Customised Configuration Files
+Example play:
+```
+- hosts:all
+  tasks:
+  - name: Template a file to /home/ansible/info.txt
+    template:
+      src: /templates/info.j2
+      dest: /home/ansible/info.txt
+```
+info.j2 template:
+```
+hostname is: {{ ansible_hostname }}
+os family is: {{ ansible_os_family }}
+```
+## Work with Ansible Variables and Facts
+### Variables
+Can be defined in playbook:
+```
+hosts: localhost
+ vars:
+   http_port: 80
+ tasks:
+ - name: print variable
+   debug:
+     msg: http port is {{ http_port }}
+```
+
+Example of accessing data:
+```
+{{ ansible_facts["eth0"]["ipv4"]["address"] }}
+```
+
+Magic variables:
+``` hostvars, groups, group_names, and inventory_hostname```  
+Example:
+```  
+{{ hostvars['test.example.com']['ansible_facts']['distribution'] }}
+```
+Can use ```vars_files``` to load variables from a file. Example:  
+playbook.yml
+```
+- hosts: localhost
+  become: true
+  vars_files:
+    - /home/ansible/vars/users.yml
+  tasks:
+    - name: adding users
+      user:
+        name: "{{ item.name }}"
+        state: present
+      with_items: "{{ users }}"
+```
+/home/ansible/vars/users.yml:
+```
+users:
+  - name: testuser1
+  - name: testuser2
+```
+### Facts
+Get all facts for localhost:
+```
+ansible localhost -m setup
+```
+Filter for ipv4 info:
+```
+ansible localhost -m setup -a "filter=*ipv4"
+```
+facts.d allows you to set custom facts. For example, create ```/etc/ansible/facts.d/prefs.fact``` and add add some custom facts:
+```
+[location]
+type=physical
+datacentre=london1
+```
+Then run the setup module and filter for ansible_local. 
+```
+ansible localhost -m setup -a "filter=ansible_local"
 ```
