@@ -301,7 +301,104 @@ facts.d allows you to set custom facts. For example, create ```/etc/ansible/fact
 type=physical
 datacentre=london1
 ```
-Then run the setup module and filter for ansible_local. 
+Then run the setup module and filter for ansible_local.
 ```
 ansible localhost -m setup -a "filter=ansible_local"
+```
+## Create and Work with roles
+Default location for roles is /etc/ansible/roles/, but Ansible will check local
+directory first.  
+Create role skeleton:  
+```
+ansible-galaxy init rolename
+```
+### Folder structure
+```
+testrole/
+├── defaults
+│   └── main.yml
+├── files
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   └── main.yml
+├── templates
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars
+    └── main.yml
+
+```
+meta - allows you to configure dependencies for roles  
+files - static files  
+templates - j2 files   
+vars - variables, highest precendence (except for command line variables)  
+defaults - variables, lowest precedence  
+
+### Example
+tasks/main.yml example
+```
+---
+# tasks file for test_role
+- name: setup motd
+  import_tasks: setup_motd.yml
+
+```
+tasks/setup_motd.yml
+```
+- template:
+    src: templates/motd.j2
+    dest: /etc/motd
+```
+
+Example of playbook that calls a role:
+```
+---
+ - hosts: local
+   become: yes
+   roles:
+     - test_role
+```
+## Download Roles From Ansible Galaxy
+```
+ansible-galaxy search searchterm
+ansible-galaxy install rolename
+ansible-galaxy remove rolename
+```
+
+## Parallelism in Ansible
+Default number of forks is 5. Can be changed in ansible.cfg
+```serial``` keyword wil set how many hosts are managed at a time, useful for batching.
+```
+- name: test play
+  hosts: webservers
+  serial: 2
+  tasks:
+  - name: task one
+    command: hostname
+  ```
+```max_fail_percentage``` can be set to abort a play if the threshold is reached. Example below will abort if more than 3 of the hosts fail.
+```
+- hosts: webservers
+  max_fail_percentage: 30
+  serial: 10
+  ```
+## Use Ansible Vault in Playbooks to Protect Sensitive Data
+Encrypting/decrypting
+```
+ansible-vault encrypt filename
+ansible-vault decrypt filename
+```
+Password can be stored in a password file and specified in playbook
+```
+ansible-playbook --vault-password-file passwordfile
+```
+##  Install Ansible Tower and Use it to Manage Systems
+## Finding Documentation
+```
+ansible-doc
 ```
